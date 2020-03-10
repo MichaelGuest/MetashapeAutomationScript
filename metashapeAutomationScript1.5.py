@@ -1,74 +1,16 @@
 import Metashape
 doc = Metashape.app.document
 
-#Input path and titile for exportedReport
-def exportReport():
-    chunk.exportReport(
-        path=
-        "/Users/012288275/Documents/Projects/Drone/RB0306/exportedReport.pdf",
-        title="testReport",
-        page_numbers=True)
+#Specify file path here for exports
+main_path = "/Users/012288275/Documents/Projects/Drone/RB0306/"
 
-
-#Input path and titile for exportedModel
-def exportModel():
-    chunk.exportModel(
-        path=
-        "/Users/012288275/Documents/Projects/Drone/RB0306/exportedModel.pdf",
-        format=Metashape.ModelFormatPDF,
-        texture_format=Metashape.ImageFormatJPEG,
-        binary=True,
-        precision=6,
-        texture=True,
-        normals=True,
-        colors=True,
-        colors_rgb_8bit=True,
-        cameras=True,
-        markers=True,
-        udim=False,
-        alpha=False,
-        raster_transform=Metashape.RasterTransformNone)
-
-
-#Input path and titile for exportDem
-def exportDem():
-    chunk.exportDem(
-        path=
-        "/Users/012288275/Documents/Projects/Drone/RB0306/exportedDem.tif",
-        projection=Metashape.CoordinateSystem("EPSG::4326"),
-        raster_transform=Metashape.RasterTransformPalette,
-        write_kml=True,
-        write_world=True,
-        write_scheme=False,
-        tiff_big=False,
-        tiff_tiled=False,
-        tiff_overviews=True)
-
-
-def exportOrthophotos():
-    chunk.exportOrthophotos(
-        path=
-        "/Users/012288275/Documents/Projects/Drone/RB0306/exportedOrthomosaic.tif",
-        projection=Metashape.CoordinateSystem("EPSG::4326"),
-        raster_transform=Metashape.RasterTransformNone,
-        white_background=True,
-        write_kml=True,
-        write_world=True,
-        tiff_big=False,
-        tiff_tiled=False,
-        tiff_overviews=True,
-        tiff_compression=Metashape.TiffCompressionJPEG,
-        jpeg_quality=70,
-        write_alpha=True)
-
-
+#Creates a new chunk if and only if document doesn't have chunk already created
 if len(doc.chunks):
     chunk = Metashape.app.document.chunk
 else:
     chunk = doc.addChunk()
 
-#Metashape.Camera.open("C:\\Users\\Michael\\Documents\\Metashape Project\\Images")
-#chunk.addPhotos("C:\\Users\\Michael\\Documents\\Metashape Project\\Images")
+#Specifys Coordinate System
 chunk.crs = Metashape.CoordinateSystem("EPSG::4326")
 
 #Imports GPS data from photos
@@ -82,6 +24,7 @@ for camera in chunk.cameras:
         camera.reference.location = (camera.reference.location.x,
                                      camera.reference.location.y, z)
 
+#Aligns all the photos
 chunk.matchPhotos(
     accuracy=Metashape.HighAccuracy,
     generic_preselection=True,
@@ -108,6 +51,7 @@ chunk.optimizeCameras(
 )
 doc.save()
 
+#Adjusts the ReconstructionUncertainty
 f = Metashape.PointCloud.Filter()
 f.init(chunk, criterion=Metashape.PointCloud.Filter.ReconstructionUncertainty)
 f.removePoints(100)
@@ -186,8 +130,11 @@ doc.save()
 
 #Builds the DenseCloud
 chunk.buildDepthMaps(
-    quality=Metashape.HighQuality, filter=Metashape.AggressiveFiltering, reuse_depth=True)
+    quality=Metashape.HighQuality,
+    filter=Metashape.AggressiveFiltering,
+    reuse_depth=True)
 chunk.buildDenseCloud(point_colors=True)
+doc.save()
 
 #Builds 3D Model
 chunk.buildModel(
@@ -200,7 +147,7 @@ chunk.buildModel(
     keep_depth=False)
 doc.save()
 
-#decimates Model to 2000000 faces
+#Decimates Model to 2000000 faces
 chunk.decimateModel(face_count=200000)
 doc.save()
 
@@ -214,13 +161,14 @@ chunk.buildTexture(
     ghosting_filter=True)
 doc.save()
 
-#Build DEM
+#Builds DEM
 chunk.buildDem(
     source=Metashape.DenseCloudData,
     interpolation=Metashape.EnabledInterpolation,
     projection=Metashape.CoordinateSystem("EPSG::4326"))
+doc.save()
 
-#Build Ortho
+#Builds Ortho
 chunk.buildOrthomosaic(
     surface=Metashape.ElevationData,
     blending=Metashape.MosaicBlending,
@@ -230,16 +178,54 @@ chunk.buildOrthomosaic(
     projection=Metashape.CoordinateSystem("EPSG::4326"))
 doc.save()
 
-#Calls exportReport Function from top
-exportReport()
+#Exports PDF report to specified path
+chunk.exportReport(
+    path=main_path + "exportedReport.pdf",
+    title="testReport",
+    page_numbers=True)
 
-#Calls exportModel Function from top
-exportModel()
+#Exports 3Dmodel to specified path
+chunk.exportModel(
+    path=main_path + "exportedModel.pdf",
+    format=Metashape.ModelFormatPDF,
+    texture_format=Metashape.ImageFormatJPEG,
+    binary=True,
+    precision=6,
+    texture=True,
+    normals=True,
+    colors=True,
+    colors_rgb_8bit=True,
+    cameras=True,
+    markers=True,
+    udim=False,
+    alpha=False,
+    raster_transform=Metashape.RasterTransformNone)
 
-#Calls exportDem Function from top
-exportDem()
+#Exports DEM KML & TIFF to specified path
+chunk.exportDem(
+    path=main_path + "exportedDem.tif",
+    projection=Metashape.CoordinateSystem("EPSG::4326"),
+    raster_transform=Metashape.RasterTransformPalette,
+    write_kml=True,
+    write_world=True,
+    write_scheme=False,
+    tiff_big=False,
+    tiff_tiled=False,
+    tiff_overviews=True)
 
-#Calls exportOrthophotos Function from top
-exportOrthophotos()
+#Exports Ortho KML & TIFF to specified path
+chunk.exportOrthophotos(
+    path=main_path + "exportedOrthomosaic.tif",
+    projection=Metashape.CoordinateSystem("EPSG::4326"),
+    raster_transform=Metashape.RasterTransformNone,
+    white_background=True,
+    write_kml=True,
+    write_world=True,
+    tiff_big=False,
+    tiff_tiled=False,
+    tiff_overviews=True,
+    tiff_compression=Metashape.TiffCompressionJPEG,
+    jpeg_quality=70,
+    write_alpha=True)
 
 print("You can go eat pizza now!")
