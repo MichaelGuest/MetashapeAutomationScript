@@ -1,8 +1,14 @@
 import Metashape
-doc = Metashape.app.document
 
-#Specify file path here for exports
-main_path = "/Users/012288275/Documents/Projects/Drone/RB0306/"
+#Opens folder directory so you can specify path for exports
+from tkinter import filedialog
+from tkinter import *
+root = Tk()
+root.withdraw()
+file_path = filedialog.askdirectory()
+
+#Initializes psx file
+doc = Metashape.app.document
 
 #Creates a new chunk if and only if document doesn't have chunk already created
 if len(doc.chunks):
@@ -10,11 +16,13 @@ if len(doc.chunks):
 else:
     chunk = doc.addChunk()
 
-#Specifys Coordinate System
+#Specifies Coordinate System
 chunk.crs = Metashape.CoordinateSystem("EPSG::4326")
 
 #Imports GPS data from photos
 chunk.loadReferenceExif(load_accuracy=True)
+
+#Gets relative atitude from image metadata and converts it to meters
 for camera in chunk.cameras:
     if not camera.reference.location:
         continue
@@ -23,6 +31,15 @@ for camera in chunk.cameras:
         z = float(camera.photo.meta["DJI/RelativeAltitude"])
         camera.reference.location = (camera.reference.location.x,
                                      camera.reference.location.y, z)
+
+#Estimates images then disables images that are less than 0.5 quality
+chunk.estimateImageQuality()
+
+for i in range(0, len(chunk.cameras)):
+    camera = chunk.cameras[i]
+    quality = camera.frames[0].meta["Image/Quality"]
+    if float(quality) < 0.5:
+        camera.enabled = False
 
 #Aligns all the photos
 chunk.matchPhotos(
@@ -180,13 +197,13 @@ doc.save()
 
 #Exports PDF report to specified path
 chunk.exportReport(
-    path=main_path + "exportedReport.pdf",
-    title="testReport",
+    path=file_path + "/exportedReport.pdf",
+    title="Processing Report",
     page_numbers=True)
 
-#Exports 3Dmodel to specified path
+#Exports 3Dmodel PDF to specified path
 chunk.exportModel(
-    path=main_path + "exportedModel.pdf",
+    path=file_path + "/exportedModel.pdf",
     format=Metashape.ModelFormatPDF,
     texture_format=Metashape.ImageFormatJPEG,
     binary=True,
@@ -201,9 +218,18 @@ chunk.exportModel(
     alpha=False,
     raster_transform=Metashape.RasterTransformNone)
 
+#Exports 3Dmodel KMZ to overlay on Google Earth
+def export3Dkmz():
+    chunk.exportModel(
+        path=file_path + "/exportedModel.kmz",
+        format=Metashape.ModelFormatKMZ,
+    )
+
+export3Dkmz()
+
 #Exports DEM KML & TIFF to specified path
 chunk.exportDem(
-    path=main_path + "exportedDem.tif",
+    path=file_path + "/exportedDem.tif",
     projection=Metashape.CoordinateSystem("EPSG::4326"),
     raster_transform=Metashape.RasterTransformPalette,
     write_kml=True,
@@ -213,9 +239,18 @@ chunk.exportDem(
     tiff_tiled=False,
     tiff_overviews=True)
 
+#Exports Orthomosaic KMZ to overlay on Google Earth
+def exportDemkmz():
+    chunk.exportDem(
+        path=file_path + "/exportedDem.kmz",
+        format=Metashape.RasterFormatKMZ,
+    )
+
+exportDemkmz()
+
 #Exports Ortho KML & TIFF to specified path
-chunk.exportOrthophotos(
-    path=main_path + "exportedOrthomosaic.tif",
+chunk.exportOrthomosaic(
+    path=file_path + "/exportedOrthomosaic.tif",
     projection=Metashape.CoordinateSystem("EPSG::4326"),
     raster_transform=Metashape.RasterTransformNone,
     white_background=True,
@@ -227,5 +262,15 @@ chunk.exportOrthophotos(
     tiff_compression=Metashape.TiffCompressionJPEG,
     jpeg_quality=70,
     write_alpha=True)
+
+
+#Exports Orthomosaic KMZ to overlay on Google Earth
+def exportOrthomosaickmz():
+    chunk.exportOrthomosaic(
+        path=file_path + "/exportedOrthomosaic.kmz",
+        format=Metashape.RasterFormatKMZ,
+    )
+
+exportOrthomosaickmz()
 
 print("You can go eat pizza now!")
